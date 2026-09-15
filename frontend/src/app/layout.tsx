@@ -1,7 +1,5 @@
 import "~/styles/globals.css";
 
-import { Providers } from "./providers";
-
 export const metadata = {
   title: "Brex Interview Playground",
   description: "Basic fullstack setup to start hacking",
@@ -16,7 +14,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="font-sans">
-        <Providers>{children}</Providers>
+        {children}
       </body>
     </html>
   );

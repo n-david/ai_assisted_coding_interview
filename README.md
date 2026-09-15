@@ -1,197 +1,75 @@
-# Brex AI Assisted Interview Playground
+# Brex Interview Playground
 
-This is a monorepo containing both the backend and frontend components for the Brex interview playground - a simple message system to get you started coding.
+A local full-stack starter for building REST APIs and UI features.
 
-## Project Structure
+## Stack
 
-```
-brex-interview-playground/
-├── backend-kotlin/    # Kotlin Spring Boot Backend
-│   ├── src/
-│   │   └── main/
-│   │       ├── kotlin/
-│   │       │   └── brex/interview/
-│   │       │       ├── config/      # Application configuration
-│   │       │       ├── controller/  # REST controllers
-│   │       │       ├── graphql/     # GraphQL resolvers
-│   │       │       ├── model/       # Domain models
-│   │       │       ├── dto/         # Data transfer objects
-│   │       │       ├── repository/  # Data access layer
-│   │       │       └── service/     # Business logic
-│   │       └── resources/
-│   │           ├── graphql/         # GraphQL schema
-│   │           └── schema/          # Database schema
-│   └── test/                        # Test files
-├── backend-python/   # Python FastAPI Backend (Alternative)
-│   ├── src/
-│   │   └── app/
-│   │       ├── api/
-│   │       │   ├── graphql/     # GraphQL schema and resolvers
-│   │       │   └── rest/        # REST API endpoints
-│   │       ├── database/        # Database configuration
-│   │       ├── models/          # SQLAlchemy models
-│   │       └── schemas/         # Pydantic schemas
-│   └── tests/                   # Test files
-└── frontend/        # T3 Stack Frontend
-    ├── src/
-    │   ├── app/              # Next.js app router pages
-    │   ├── components/       # React components
-    │   ├── graphql/         # GraphQL queries and mutations
-    │   ├── lib/             # Utility functions and configurations
-    │   ├── styles/          # Global styles and Tailwind config
-    │   └── types/           # TypeScript type definitions
-    ├── public/              # Static assets
-    └── tests/               # Test files
-```
+- **Frontend:** Next.js 15, React 19, TypeScript, Tailwind CSS, and standard `fetch` requests.
+- **Backend:** Python, FastAPI, Pydantic, and SQLAlchemy.
+- **Database:** SQLite, stored in `backend-python/dummy.db` when the server starts from that directory.
 
-### Backend Options
+## Setup
 
-You can choose between two backend implementations:
+Use Python 3.14, Poetry, and Node.js 20 or later.
 
-#### Kotlin Spring Boot Backend
+Start the backend from the repository root:
 
-The Kotlin backend is a Spring Boot application that provides:
-- REST and GraphQL APIs for simple message operations
-- H2 in-memory database
-- Basic message CRUD functionality
-
-#### Python FastAPI Backend (Alternative)
-
-The Python backend is a FastAPI application that provides:
-- REST and GraphQL APIs for simple message operations
-- SQLAlchemy with SQLite database
-- Strawberry GraphQL integration
-- Pydantic for data validation
-
-### Frontend (T3 Stack)
-
-The frontend is built with the T3 Stack, featuring:
-- Next.js 14 with App Router
-- TypeScript for type safety
-- Tailwind CSS for styling
-- Apollo Client for GraphQL integration
-- GraphQL Code Generator for type-safe GraphQL operations
-
-### Prerequisites
-
-For Kotlin backend:
-- JDK 11 or higher
-- Gradle (for building the project)
-
-For Python backend:
-- Python 3.8 or higher
-- Poetry (for dependency management)
-
-For frontend:
-- Node.js 18 or higher
-- npm or yarn
-
-## Development
-
-### Running the Backend
-
-#### Option 1: Kotlin Backend
-
-1. **Build the Project**:
-   ```bash
-   cd backend-kotlin
-   ./gradlew build
-   ```
-
-2. **Run the Application**:
-   ```bash
-   ./gradlew bootRun --console=plain
-   ```
-
-3. **Access the Application**:
-   - REST API: `http://localhost:8080/api/`
-      - i.e. `http://localhost:8080/api/messages/latest`
-   - GraphQL API: `http://localhost:8080/graphql`
-
-#### Option 2: Python Backend
-
-1. **Install Poetry** (if not already installed):
-   ```bash
-   curl -sSL https://install.python-poetry.org | python3 -
-   ```
-
-2. **Install Dependencies**:
-   ```bash
-   cd backend-python
-   poetry install
-   ```
-
-3. **Run the Development Server**:
-   ```bash
-   poetry run uvicorn src.app.main:app --reload --port 8080
-   ```
-
-4. **Access the Application**:
-   - REST API: `http://localhost:8080/api/`
-      - i.e. `http://localhost:8080/api/messages/latest`
-   - GraphQL Playground: `http://localhost:8080/graphql`
-
-### Running the Frontend
-
-1. **Install Dependencies**:
-   ```bash
-   cd frontend
-   npm install
-   ```
-
-2. **Start Development Server**:
-   ```bash
-   npm run dev
-   ```
-
-3. **Access the Application**:
-   Visit `http://localhost:3000` to access the application
-
-### GraphQL Development
-
-#### Generating TypeScript Types
-   The project uses GraphQL Code Generator to automatically generate TypeScript types from the GraphQL schema. **Make sure the backend is running when run this command.**
-   ```bash
-   npm run codegen
-   ```
-
-#### Testing GraphQL
-- Access the GraphQL IDE:
-  - For Kotlin backend: `http://localhost:8080/graphiql`
-  - For Python backend: `http://localhost:8080/graphql`
-
-- **Example Query**:
-    ```graphql
-    query {
-      latestMessages(limit: 10) {
-        id
-        content
-        createdAt
-      }
-    }
-    ```
-
-- **Example Mutation**:
-    ```graphql
-    mutation {
-      createMessage {
-        id
-        content
-        createdAt
-      }
-    }
-    ```
-
-### Running Tests
-
-#### Kotlin Backend Tests:
-```bash
-cd backend-kotlin
-./gradlew test
-```
-
-#### Python Backend Tests:
-```bash
+```sh
 cd backend-python
-poetry run pytest
+poetry env use python3.14
+poetry install
+poetry run uvicorn src.app.main:app --reload --port 8080
+```
+
+In another terminal, start the frontend from the repository root:
+
+```sh
+cd frontend
+npm install
+npm run dev
+```
+
+- App: http://localhost:3000
+- Interactive REST API docs: http://localhost:8080/docs
+- OpenAPI schema: http://localhost:8080/openapi.json
+
+The frontend expects the backend at `http://localhost:8080/api`. The backend allows browser requests from `http://localhost:3000`.
+
+## Project structure
+
+```text
+backend-python/
+  src/app/
+    main.py                  App setup and router registration
+    api/rest/messages.py     REST endpoints
+    schemas/message.py       JSON request/response models
+    models/message.py        Database table definition
+    database/                Connection setup and seed data
+frontend/
+  src/
+    app/                     Page entry point and layout
+    components/              React UI components
+    lib/api.ts               REST requests and TypeScript response types
+```
+
+## Implementing features
+
+1. Add or change a database model if the feature needs new stored data.
+2. Define Pydantic request/response models and implement a REST endpoint.
+3. Exercise the endpoint using `/docs`.
+4. Add a request function and response type in `frontend/src/lib/api.ts`.
+5. Call it from a React component and handle loading, success, and errors.
+
+See the [backend guide](backend-python/README.md) and [frontend guide](frontend/README.md) for details.
+
+## Database lifecycle
+
+The starter drops and recreates its tables on every backend start and inserts one Hello World message. This includes automatic restarts caused by `--reload`. Data changes therefore do not survive a backend restart.
+
+## Frontend checks
+
+From `frontend`:
+
+```sh
+npm run typecheck
 ```

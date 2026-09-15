@@ -1,79 +1,58 @@
-# Brex Interview Playground Backend (Python)
+# Python REST backend
 
-A FastAPI and Strawberry GraphQL implementation of the Brex Interview Playground Python Backend.
+FastAPI serves REST endpoints, Pydantic validates JSON requests and responses, and SQLAlchemy reads and writes a local SQLite database.
 
-## Technologies Used
+## Run
 
-- FastAPI: Modern, fast web framework for building APIs
-- Strawberry: GraphQL library for Python
-- SQLAlchemy: SQL toolkit and ORM
-- Pydantic: Data validation using Python type annotations
-- Poetry: Dependency management and packaging
-- SQLite: Database (for development)
+From this directory, with Python 3.14 and Poetry installed:
 
-## Project Structure
-
-```
-backend-python/
-├── src/
-│   └── app/
-│       ├── api/
-│       │   ├── graphql/     # GraphQL schema and resolvers
-│       │   └── rest/        # REST API endpoints
-│       ├── database/        # Database configuration
-│       ├── models/          # SQLAlchemy models
-│       └── schemas/         # Pydantic schemas
-└── tests/                   # Test files
+```sh
+poetry env use python3.14
+poetry install
+poetry run uvicorn src.app.main:app --reload --port 8080
 ```
 
-## Setup
+Open http://localhost:8080/docs to explore and try the endpoints.
 
-1. Install Poetry:
-   ```bash
-   curl -sSL https://install.python-poetry.org | python3 -
-   ```
+## REST endpoints
 
-2. Install dependencies:
-   ```bash
-   poetry install
-   ```
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/api/messages/` | List messages; accepts `skip` and `limit` |
+| GET | `/api/messages/latest/` | List newest messages first; accepts `limit` |
+| GET | `/api/messages/{message_id}` | Get a message by UUID |
+| POST | `/api/messages/` | Create a message from JSON `{"content":"Hello World"}` |
 
-3. Run the development server:
-   ```bash
-   poetry run uvicorn src.app.main:app --reload --port 8080
-   ```
+Message responses contain `id`, `content`, and `created_at`.
 
-## API Documentation
-
-- REST API documentation: http://localhost:8080/docs
-- GraphQL Playground: http://localhost:8080/graphql
-
-### Example GraphQL Query
-
-```graphql
-query {
-  latestMessages(limit: 10) {
-    id
-    content
-    createdAt
-  }
-}
+```sh
+curl 'http://localhost:8080/api/messages/latest/?limit=10'
+curl -X POST 'http://localhost:8080/api/messages/' \
+  -H 'Content-Type: application/json' \
+  -d '{"content":"My first REST message"}'
 ```
 
-## Development
+## Where to work
 
-- Format code:
-  ```bash
-  poetry run black .
-  poetry run isort .
-  ```
+- `src/app/api/rest/messages.py`: route handlers and database operations.
+- `src/app/schemas/message.py`: Pydantic request/response models.
+- `src/app/models/message.py`: SQLAlchemy table definition.
+- `src/app/database/session.py`: SQLite connection and request sessions.
+- `src/app/database/seed.py`: initial sample data.
+- `src/app/main.py`: app setup, CORS, and router registration.
 
-- Type checking:
-  ```bash
-  poetry run mypy .
-  ```
+Register new routers in `main.py` with `app.include_router(...)`.
 
-- Run tests:
-  ```bash
-  poetry run pytest
-  ``` 
+## Database
+
+The URL `sqlite:///./dummy.db` resolves relative to the server's working directory. Run from `backend-python` to use its `dummy.db` file.
+
+The starter drops and recreates its tables, then seeds one Hello World message on every start. Automatic reloads also reset the data.
+
+## Development tools
+
+```sh
+poetry run black src
+poetry run isort src
+poetry run mypy src
+```

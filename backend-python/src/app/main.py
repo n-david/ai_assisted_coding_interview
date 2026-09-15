@@ -1,8 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from strawberry.fastapi import GraphQLRouter
 
-from .api.graphql.schema import get_context, schema
 from .api.rest import messages
 from .database.seed import seed_database
 from .database.session import SessionLocal, engine
@@ -34,7 +32,3 @@ app.add_middleware(
 
 # Include REST API routers
 app.include_router(messages.router, prefix="/api")
-
-# Add GraphQL endpoint
-graphql_app = GraphQLRouter(schema, context_getter=get_context)
-app.include_router(graphql_app, prefix="/graphql")

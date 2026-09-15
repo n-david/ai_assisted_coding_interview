@@ -1,36 +1,49 @@
 'use client';
 
-import { useState } from 'react';
-import { useQuery, useMutation } from '@apollo/client';
-import { GET_LATEST_MESSAGES, CREATE_MESSAGE } from '~/graphql/queries';
-import type { 
-  GetLatestMessagesQuery, 
-  CreateMessageMutation
-} from '~/generated/graphql';
+import { useEffect, useState } from 'react';
+import { createMessage, getLatestMessages, type Message } from '~/lib/api';
 
 export default function HelloWorldDashboard() {
   const [isCreating, setIsCreating] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const { data: messagesData, loading: messagesLoading, refetch: refetchMessages } = useQuery<GetLatestMessagesQuery>(GET_LATEST_MESSAGES, {
-    variables: { limit: 10 }
-  });
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(true);
 
-  const [createMessage] = useMutation<CreateMessageMutation>(CREATE_MESSAGE);
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadMessages() {
+      try {
+        const latestMessages = await getLatestMessages(controller.signal);
+        if (!controller.signal.aborted) setMessages(latestMessages);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setMessage({
+            type: 'error',
+            text: error instanceof Error ? error.message : 'Failed to load messages',
+          });
+        }
+      } finally {
+        if (!controller.signal.aborted) setMessagesLoading(false);
+      }
+    }
+
+    void loadMessages();
+    return () => controller.abort();
+  }, []);
 
   const handleCreateMessage = async () => {
     setIsCreating(true);
     setMessage(null);
 
     try {
-      const result = await createMessage();
-      if (result.data?.createMessage) {
-        setMessage({ 
-          type: 'success', 
-          text: 'Message created successfully!' 
-        });
-        refetchMessages();
-      }
+      await createMessage('Hello World');
+      setMessages(await getLatestMessages());
+      setMessage({
+        type: 'success',
+        text: 'Message created successfully!'
+      });
     } catch (error) {
       setMessage({ 
         type: 'error', 
@@ -51,7 +64,7 @@ export default function HelloWorldDashboard() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Brex Interview Playground</h1>
-          <p className="text-gray-600">Let's start hacking!</p>
+          <p className="text-gray-600">Let&apos;s start hacking!</p>
         </div>
 
         {/* Create Message Card */}
@@ -81,16 +94,16 @@ export default function HelloWorldDashboard() {
         <div className="bg-white rounded-lg shadow-lg p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Messages</h3>
           
-          {!messagesData?.latestMessages?.length ? (
+          {!messages.length ? (
             <p className="text-gray-500 text-center py-8">No messages yet</p>
           ) : (
             <div className="space-y-3">
-              {messagesData.latestMessages.map((message: any) => message && (
+              {messages.map((message) => (
                 <div key={message.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">{message.content}</p>
                     <p className="text-sm text-gray-500">
-                      {message.createdAt && new Date(message.createdAt).toLocaleDateString()}
+                      {new Date(message.created_at).toLocaleDateString()}
                     </p>
                   </div>
                 </div>

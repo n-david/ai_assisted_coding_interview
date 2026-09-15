@@ -25,7 +25,7 @@ Open http://localhost:3000. Interactive REST API docs are at http://localhost:80
 
 | File | Purpose |
 | --- | --- |
-| `../backend-python/src/app/api/rest/messages.py` | REST routes: HTTP methods, paths, and database operations |
+| `../backend-python/src/app/api/messages.py` | REST routes: HTTP methods, paths, and database operations |
 | `../backend-python/src/app/schemas/message.py` | Pydantic models: JSON request validation and response fields |
 | `../backend-python/src/app/models/message.py` | SQLAlchemy model: database table and columns |
 | `../backend-python/src/app/main.py` | App setup; register additional routers here |

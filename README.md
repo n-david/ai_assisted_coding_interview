@@ -41,7 +41,7 @@ The frontend expects the backend at `http://localhost:8080/api`. The backend all
 backend-python/
   src/app/
     main.py                  App setup and router registration
-    api/rest/messages.py     REST endpoints
+    api/messages.py          REST endpoints
     schemas/message.py       JSON request/response models
     models/message.py        Database table definition
     database/                Connection setup and seed data

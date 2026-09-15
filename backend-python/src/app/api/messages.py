@@ -4,9 +4,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ...database.session import get_db
-from ...models.message import Message as MessageModel
-from ...schemas.message import Message, MessageCreate
+from ..database.session import get_db
+from ..models.message import Message as MessageModel
+from ..schemas.message import Message, MessageCreate
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 
@@ -44,4 +44,4 @@ def get_latest_messages(limit: int = 10, db: Session = Depends(get_db)):
         .limit(limit)
         .all()
     )
-    return messages 
+    return messages

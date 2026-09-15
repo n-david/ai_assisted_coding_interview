@@ -34,7 +34,7 @@ curl -X POST 'http://localhost:8080/api/messages/' \
 
 ## Where to work
 
-- `src/app/api/rest/messages.py`: route handlers and database operations.
+- `src/app/api/messages.py`: route handlers and database operations.
 - `src/app/schemas/message.py`: Pydantic request/response models.
 - `src/app/models/message.py`: SQLAlchemy table definition.
 - `src/app/database/session.py`: SQLite connection and request sessions.

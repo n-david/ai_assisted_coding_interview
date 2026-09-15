@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api.rest import messages
+from .api import messages
 from .database.seed import seed_database
 from .database.session import SessionLocal, engine
 from .models.base import Base

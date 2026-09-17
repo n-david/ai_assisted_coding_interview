@@ -2,37 +2,26 @@
 
 The dashboard uses the Python backend's REST API with standard `fetch` calls.
 
-## Run locally
+See the [root setup instructions](../README.md#setup) to install dependencies and start the servers.
 
-Start the backend in one terminal, from the repository root:
-
-```sh
-cd backend-python
-poetry run uvicorn src.app.main:app --reload --port 8080
-```
-
-Start the frontend in another terminal, from the repository root:
-
-```sh
-cd frontend
-npm install
-npm run dev
-```
-
-Open http://localhost:3000. Interactive REST API docs are at http://localhost:8080/docs.
-
-## Add an API or feature
+## Components and API client
 
 | File | Purpose |
 | --- | --- |
-| `../backend-python/src/app/api/messages.py` | REST routes: HTTP methods, paths, and database operations |
-| `../backend-python/src/app/schemas/message.py` | Pydantic models: JSON request validation and response fields |
-| `../backend-python/src/app/models/message.py` | SQLAlchemy model: database table and columns |
-| `../backend-python/src/app/main.py` | App setup; register additional routers here |
+| `src/app/layout.tsx` | Shared HTML wrapper, global styles, and page metadata |
+| `src/app/page.tsx` | Home page entry point; renders the dashboard |
 | `src/lib/api.ts` | TypeScript response types and REST requests |
 | `src/components/HelloWorldDashboard.tsx` | Page behavior and rendering |
 
-For a new feature, add the backend route and schemas, try the request in `/docs`, then add a function in `api.ts` and call it from the UI.
+## State and request flow
+
+The dashboard is a client component. It uses React state to track the message list, initial loading, message creation, and success/error notifications.
+
+1. On mount, an effect calls `getLatestMessages()` and stores the result in state. Its cleanup aborts the request if the component is removed.
+2. Clicking the create button calls `createMessage("Hello World")`, then fetches the updated list.
+3. State updates render the new list and notification. The button is disabled while creation is in progress.
+
+Both request functions live in `src/lib/api.ts`, whose `API_URL` points to `http://localhost:8080/api`.
 
 The dashboard currently uses:
 
@@ -41,11 +30,18 @@ The dashboard currently uses:
 
 REST responses use `created_at` for the timestamp. Request failures appear on the dashboard.
 
-## Database behavior
+## Adding a UI feature
 
-The Python backend uses SQLite at `backend-python/dummy.db` when launched from that directory. The boilerplate recreates its tables and seeds a Hello World message on every backend start, including reloads after code edits.
+1. Implement and try the endpoint using the [backend guide](../backend-python/README.md#where-to-work).
+2. Add a request function and response type in `src/lib/api.ts`.
+3. Call the function from a component's event handler or loading effect.
+4. Store the result in state and render loading, success, and error states.
+
+The TypeScript response types describe expected JSON; they do not validate responses at runtime.
 
 ## Check frontend types
+
+Run from `frontend`:
 
 ```sh
 npm run typecheck

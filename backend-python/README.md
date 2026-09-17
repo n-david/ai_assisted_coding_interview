@@ -2,19 +2,11 @@
 
 FastAPI serves REST endpoints, Pydantic validates JSON requests and responses, and SQLAlchemy reads and writes a local SQLite database.
 
-## Run
-
-From this directory, with Python 3.14 and Poetry installed:
-
-```sh
-poetry env use python3.14
-poetry install
-poetry run uvicorn src.app.main:app --reload --port 8080
-```
-
-Open http://localhost:8080/docs to explore and try the endpoints.
+See the [root setup instructions](../README.md#setup) to install dependencies and start the servers.
 
 ## REST endpoints
+
+Open http://localhost:8080/docs to explore and try the endpoints.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
@@ -43,6 +35,10 @@ curl -X POST 'http://localhost:8080/api/messages/' \
 
 Register new routers in `main.py` with `app.include_router(...)`.
 
+For a new API feature, update the database model if needed, define the request/response schemas, implement the route, and test it in `/docs`. See the [frontend integration guide](../frontend/README.md#adding-a-ui-feature) to connect it to the UI.
+
+The CORS configuration in `main.py` allows browser requests from `http://localhost:3000`.
+
 ## Database
 
 The URL `sqlite:///./dummy.db` resolves relative to the server's working directory. Run from `backend-python` to use its `dummy.db` file.
@@ -50,6 +46,8 @@ The URL `sqlite:///./dummy.db` resolves relative to the server's working directo
 The starter drops and recreates its tables, then seeds one Hello World message on every start. Automatic reloads also reset the data.
 
 ## Development tools
+
+Run from `backend-python`:
 
 ```sh
 poetry run black src

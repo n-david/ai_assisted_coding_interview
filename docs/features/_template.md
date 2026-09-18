@@ -1,5 +1,7 @@
 # NNN — Feature name
 
+Use this optional record when work will span sessions or its decisions need to be kept in the repository. Keep only the sections that help someone resume the work.
+
 ## Status
 
 Planning / Implementing / Verifying / Complete

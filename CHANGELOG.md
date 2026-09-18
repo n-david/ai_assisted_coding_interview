@@ -1,6 +1,6 @@
 # Changelog
 
-Record completed features and meaningful fixes here, grouped by completion date. Keep entries concise and link to feature documents for details.
+Record completed features and meaningful fixes here, grouped by completion date. Keep entries concise and link to feature documents when available.
 
 ## 2026-09-16
 

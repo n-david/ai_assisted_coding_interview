@@ -42,4 +42,4 @@ Before adding data you want to keep, review the [database reset behavior](backen
 
 ## Working with coding agents
 
-Start agent sessions in this repository root. [AGENTS.md](AGENTS.md) defines the working rules. Track each substantial feature using [the feature template](docs/features/_template.md), and record completed changes in the [changelog](CHANGELOG.md).
+Start agent sessions in this repository root. [AGENTS.md](AGENTS.md) defines the working rules. Use Plan mode to agree on the approach for larger changes. When work may continue in a new session, save the agreed plan and progress under `docs/features/` using [the optional feature template](docs/features/_template.md). Record completed changes in the [changelog](CHANGELOG.md).

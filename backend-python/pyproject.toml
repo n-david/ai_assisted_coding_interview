@@ -21,6 +21,7 @@ black = "^24.2.0"
 isort = "^5.13.2"
 mypy = "^1.8.0"
 pytest-asyncio = "^0.23.5"
+httpx = "^0.28.1"
 
 [build-system]
 requires = ["poetry-core"]
@@ -34,3 +35,9 @@ target-version = ["py39"]
 profile = "black"
 line_length = 100
 multi_line_output = 3
+
+[tool.mypy]
+explicit_package_bases = true
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

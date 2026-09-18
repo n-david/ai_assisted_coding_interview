@@ -45,4 +45,7 @@ Run from `frontend`:
 
 ```sh
 npm run typecheck
+npm test
 ```
+
+Vitest and React Testing Library are configured for component tests in `src/**/*.test.tsx`.

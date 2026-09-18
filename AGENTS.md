@@ -57,7 +57,6 @@ These instructions apply throughout this repository. Start sessions in this repo
 
 - READMEs describe current setup, architecture, and usage. Update the relevant guide when these change, and link to the authoritative section instead of repeating it elsewhere.
 - When used, feature documents preserve requirements, design decisions, implementation progress, and verification evidence. Update them when requirements or implementation change.
-- Add concise entries for completed features and meaningful fixes to [CHANGELOG.md](CHANGELOG.md) under a dated `YYYY-MM-DD` heading. Link to the feature document where useful; do not duplicate the full spec.
-- Before declaring a feature complete, confirm acceptance criteria, automated tests, applicable static checks, manual smoke testing, documentation, and changelog updates. Explicitly report any incomplete items.
+- Before declaring a feature complete, confirm acceptance criteria, automated tests, applicable static checks, manual smoke testing, and documentation updates. Explicitly report any incomplete items.
 - Final updates should summarize what changed, what was verified, and any remaining limitations.
 - Keep generated development database changes out of commits unless the user explicitly requests them.

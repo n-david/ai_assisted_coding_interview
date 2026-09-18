@@ -44,7 +44,7 @@ Replace the placeholders with concrete steps. Check each item only after complet
 - [ ] Add integration tests where needed.
 - [ ] Run relevant tests and static checks.
 - [ ] Perform the manual smoke test.
-- [ ] Update usage documentation and changelog.
+- [ ] Update usage documentation.
 - [ ] Confirm all acceptance criteria and verification results.
 
 ## Verification

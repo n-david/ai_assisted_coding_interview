@@ -45,12 +45,17 @@ The URL `sqlite:///./dummy.db` resolves relative to the server's working directo
 
 The starter drops and recreates its tables, then seeds one Hello World message on every start. Automatic reloads also reset the data.
 
+Set `DATABASE_URL` to a different SQLite URL when you need an isolated database. For example, `DATABASE_URL=sqlite:////tmp/brex-interview.db poetry run uvicorn src.app.main:app --reload --port 8080` keeps the tracked `dummy.db` untouched.
+
 ## Development tools
 
 Run from `backend-python`:
 
 ```sh
+poetry run pytest
 poetry run black src
 poetry run isort src
 poetry run mypy src
 ```
+
+The pytest fixture uses a temporary database before importing the app, then a separate database for each test client.

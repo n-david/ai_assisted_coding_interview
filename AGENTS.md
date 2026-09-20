@@ -1,6 +1,6 @@
 # Coding agent instructions
 
-These instructions apply throughout this repository. Start sessions in this repository root so they are discovered.
+These instructions apply throughout this repository.
 
 ## Project context and orientation
 

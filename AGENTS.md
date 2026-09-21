@@ -57,6 +57,6 @@ These instructions apply throughout this repository.
 
 - READMEs describe current setup, architecture, and usage. Update the relevant guide when these change, and link to the authoritative section instead of repeating it elsewhere.
 - When used, feature documents preserve requirements, design decisions, implementation progress, and verification evidence. Update them when requirements or implementation change.
-- Before declaring a feature complete, confirm acceptance criteria, automated tests, applicable static checks, manual smoke testing, and documentation updates. Explicitly report any incomplete items.
+- Before declaring a feature complete, confirm acceptance criteria, automated tests, applicable static checks, manual smoke testing, and documentation updates — check each separately rather than inferring one from another. Explicitly report any incomplete items.
 - Final updates should summarize what changed, what was verified, and any remaining limitations.
 - Keep generated development database changes out of commits unless the user explicitly requests them.

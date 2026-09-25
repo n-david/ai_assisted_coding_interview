@@ -12,15 +12,17 @@ Open http://localhost:8080/docs to explore and try the endpoints.
 | --- | --- | --- |
 | GET | `/api/accounts/` | List all accounts with their current computed balance |
 | GET | `/api/accounts/{account_id}` | Get a single account by UUID; 404 if unknown |
+| GET | `/api/accounts/{account_id}/transfers` | That account's transfer log (sent + received), newest first; 404 if unknown |
 | POST | `/api/transfers/` | Transfer money between two accounts; see below |
 
 Account responses contain `id`, `name`, `balance_cents`, and `created_at`. `balance_cents` is always computed as the sum of the account's ledger entries (see [Data model](#data-model)) — there is no stored balance column.
 
 ```sh
 curl 'http://localhost:8080/api/accounts/'
+curl 'http://localhost:8080/api/accounts/<uuid>/transfers'
 ```
 
-This is a peer-to-peer transfer demo; see [docs/features/001-p2p-transfer-service.md](../docs/features/001-p2p-transfer-service.md) for the full design, including the transfer-log endpoint landing in a later checkpoint.
+This is a peer-to-peer transfer demo; see [docs/features/001-p2p-transfer-service.md](../docs/features/001-p2p-transfer-service.md) for the full design.
 
 ### Transfers
 
@@ -46,7 +48,7 @@ curl -X POST 'http://localhost:8080/api/transfers/' \
 
 ## Where to work
 
-- `src/app/api/accounts.py`: account route handlers and balance computation.
+- `src/app/api/accounts.py`: account route handlers, balance computation, and the per-account transfer log.
 - `src/app/api/transfers.py`: transfer route handler — idempotency, validation, and the atomic ledger write.
 - `src/app/schemas/account.py`, `schemas/transfer.py`: Pydantic request/response models.
 - `src/app/models/account.py`, `models/transfer.py`, `models/ledger_entry.py`: SQLAlchemy table definitions.

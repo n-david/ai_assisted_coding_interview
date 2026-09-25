@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementing (Checkpoints 1–2 complete, Checkpoint 3 next).
+Complete (Checkpoints 1–3 implemented and verified).
 
 ## Goal and scope
 
@@ -18,13 +18,13 @@ The existing `messages` feature (model/schema/route/seed/frontend dashboard) is 
 
 ## Requirements and acceptance criteria
 
-- [ ] Accounts are listed on a dashboard with name + current balance; each has a detail page.
-- [ ] An account's balance is always the sum of its ledger entries (no separate mutable counter to drift out of sync).
-- [ ] A transfer atomically debits the sender and credits the receiver, or fails entirely (no partial writes).
-- [ ] Transfers reject: non-positive amounts, self-transfers, insufficient funds, unknown accounts.
-- [ ] Transfers are idempotent via a client-supplied `Idempotency-Key` header: same key + same payload replays the original result; same key + different payload is a conflict.
-- [ ] Concurrent transfers that would collectively overdraw an account cannot both succeed — no double-spend race.
-- [ ] Each account has a transfer log (sent + received, newest first) that is read-only (insert-only tables, no update/delete routes).
+- [x] Accounts are listed on a dashboard with name + current balance; each has a detail page.
+- [x] An account's balance is always the sum of its ledger entries (no separate mutable counter to drift out of sync).
+- [x] A transfer atomically debits the sender and credits the receiver, or fails entirely (no partial writes).
+- [x] Transfers reject: non-positive amounts, self-transfers, insufficient funds, unknown accounts.
+- [x] Transfers are idempotent via a client-supplied `Idempotency-Key` header: same key + same payload replays the original result; same key + different payload is a conflict.
+- [x] Concurrent transfers that would collectively overdraw an account cannot both succeed — no double-spend race.
+- [x] Each account has a transfer log (sent + received, newest first) that is read-only (insert-only tables, no update/delete routes).
 
 ## Questions and decisions
 
@@ -111,11 +111,11 @@ None outstanding. Two rounds of clarification were resolved before implementatio
 
 ### Checkpoint 3 — Transfer log (feature 3)
 
-- [ ] `GET /api/accounts/{id}/transfers`.
-- [ ] `tests/test_accounts.py` (or new file): log ordering, direction, empty state, unknown account.
-- [ ] Frontend: transfer log table on `AccountDetail`.
-- [ ] Frontend tests: log rendering, empty state.
-- [ ] Run tests/static checks; manual smoke test; update READMEs.
+- [x] `GET /api/accounts/{id}/transfers` in `api/accounts.py` (sender-or-receiver, newest first, 404 if account missing).
+- [x] `tests/test_accounts.py`: log ordering/direction, empty state, unknown account.
+- [x] Frontend: `getAccountTransfers` in `lib/api.ts`; transfer log table on `AccountDetail` (direction, counterparty name, signed amount, timestamp; refreshed after a successful transfer alongside the balance).
+- [x] Frontend tests: log rendering (sent/received rows), empty state.
+- [x] Run tests/static checks; manual smoke test; update READMEs.
 
 ## Verification
 
@@ -127,9 +127,9 @@ None outstanding. Two rounds of clarification were resolved before implementatio
 | Checkpoint 1 frontend unit | `npm test` (from `frontend`) | Pass — 4/4 (`AccountsDashboard` list/error, `AccountDetail` load/error) |
 | Checkpoint 2 backend: happy/validation/idempotency/concurrency | `poetry run pytest` | Pass — 13/13 total (8 new: happy path, amount ≤ 0, self-transfer, insufficient funds, missing account ×2, idempotent replay, idempotency conflict, concurrency/double-spend). Concurrency test re-run 5× standalone with no flakes. |
 | Checkpoint 2 frontend | `npm test` | Pass — 8/8 total (4 new: submit success + balance refresh, submit error inline message, non-positive amount blocked client-side, self excluded from destination dropdown) |
-| Checkpoint 3 backend: log ordering/empty/404 | `poetry run pytest` | Not run |
-| Checkpoint 3 frontend | `npm test` | Not run |
-| Static checks (Checkpoints 1–2 files) | `poetry run black`/`isort` (new/modified files only, pre-existing `models/base.py` already fails `black` unrelated to this change); `poetry run mypy src`; `npm run typecheck`; `npm run lint` | Pass |
+| Checkpoint 3 backend: log ordering/empty/404 | `poetry run pytest` | Pass — 16/16 total (3 new: sent+received ordering/direction, empty log, 404 for unknown account) |
+| Checkpoint 3 frontend | `npm test` | Pass — 10/10 total (2 new: log renders sent/received rows with correct signed amounts and counterparty, empty-state message) |
+| Static checks (Checkpoints 1–3 files) | `poetry run black`/`isort` (new/modified files only, pre-existing `models/base.py` already fails `black` unrelated to this change); `poetry run mypy src`; `npm run typecheck`; `npm run lint` | Pass |
 
 ### Manual smoke test
 
@@ -137,11 +137,11 @@ None outstanding. Two rounds of clarification were resolved before implementatio
 | --- | --- | --- |
 | Checkpoint 1: dashboard + balance | 4 seeded accounts @ $1000, detail page shows balance | **Pass.** Backend: `curl /api/accounts/` → 4 accounts (Alice/Bob/Carol/Dave) @ 100000 cents each; `GET /api/accounts/{id}` → 200; unknown id → 404. Frontend (localhost:3000, Chrome via claude-in-chrome): dashboard lists all 4 with `$1,000.00`; clicking "Alice" navigates to `/accounts/{id}` showing name + `$1,000.00` balance. Both dev servers were already running; backend `--reload` picked up the changes automatically. Run 2026-09-25. |
 | Checkpoint 2: transfer + retry + over-limit | Balances update once; retry no-ops; over-limit rejected | **Pass.** `curl`: Alice→Bob $250 → `201`; identical retry (same `Idempotency-Key`) → `200`, same transfer id, balances unchanged by the retry (Alice $750.00, Bob $1,250.00); over-limit transfer → `400 Insufficient funds`; self-transfer → `400`. Browser (Chrome via claude-in-chrome): on Carol's detail page, selected "Dave", entered $100, submitted — "Transfer complete.", Carol's balance updated to $900.00 in place; dashboard then showed Carol $900.00 / Dave $1,100.00, consistent with the API. Run 2026-09-25. |
-| Checkpoint 3: transfer log | Both sender and receiver see the transfer in their log | Not run |
+| Checkpoint 3: transfer log | Both sender and receiver see the transfer in their log | **Pass.** `curl`: Dave's log empty before any transfers; after Alice→Dave $50 and Dave→Bob $20, `GET /api/accounts/{dave}/transfers` returns both, newest first, correct direction each way; unknown account → `404`. Browser: Dave's detail page shows balance $1,030.00 and a log table with "Sent Bob -$20.00" and "Received Alice +$50.00"; Carol's (untouched) page shows "No transfers yet". Run 2026-09-25. |
 
 ## Progress and handoff
 
-- Completed work: plan approved; feature doc created; **Checkpoint 1** (accounts + double-entry ledger seed data, balance-viewing endpoints/UI) and **Checkpoint 2** (`POST /api/transfers/` — idempotent, atomic, `BEGIN IMMEDIATE`-serialized ledger writes; transfer form UI) implemented and verified. Hello World feature fully removed. Both checkpoints committed.
-- Remaining work and blockers: Checkpoint 3 (transfer log) not started.
-- Next concrete step: implement Checkpoint 3 — `GET /api/accounts/{id}/transfers` and the transfer log table on `AccountDetail`.
-- Known limitations or follow-up work: single-process demo (the `BEGIN IMMEDIATE` concurrency approach doesn't extend to multiple SQLite writer processes); no reconciliation job (not needed since balance is always computed live from the ledger, not cached); the concurrency regression test (`test_concurrent_transfers_cannot_overdraw_account`) is a real-thread test and, while verified stable across repeated runs and deterministic by construction (equal transfer amounts fix the affordable count regardless of interleaving), real-concurrency tests are inherently less airtight than a fully deterministic unit test.
+- Completed work: all three checkpoints implemented and verified — **Checkpoint 1** (accounts + double-entry ledger seed data, balance-viewing endpoints/UI), **Checkpoint 2** (`POST /api/transfers/` — idempotent, atomic, `BEGIN IMMEDIATE`-serialized ledger writes; transfer form UI), **Checkpoint 3** (`GET /api/accounts/{id}/transfers` + transfer log table). Hello World feature fully removed. All checkpoints committed; all acceptance criteria above are checked.
+- Remaining work and blockers: none for the three requested features. See known limitations below for out-of-scope follow-ups.
+- Next concrete step: none planned; feature is complete. If resumed, natural next steps would be from "Known limitations" below.
+- Known limitations or follow-up work: single-process demo (the `BEGIN IMMEDIATE` concurrency approach doesn't extend to multiple SQLite writer processes); no reconciliation job (not needed since balance is always computed live from the ledger, not cached); the concurrency regression test (`test_concurrent_transfers_cannot_overdraw_account`) is a real-thread test and, while verified stable across repeated runs and deterministic by construction (equal transfer amounts fix the affordable count regardless of interleaving), real-concurrency tests are inherently less airtight than a fully deterministic unit test; no global/admin transfer log; no pagination on the transfer log (fine at demo scale).

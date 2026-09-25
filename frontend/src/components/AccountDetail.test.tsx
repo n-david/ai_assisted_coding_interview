@@ -1,16 +1,18 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AccountDetail from './AccountDetail';
-import { createTransfer, getAccount, getAccounts } from '~/lib/api';
+import { createTransfer, getAccount, getAccounts, getAccountTransfers } from '~/lib/api';
 
 vi.mock('~/lib/api', () => ({
   getAccount: vi.fn(),
   getAccounts: vi.fn(),
+  getAccountTransfers: vi.fn(),
   createTransfer: vi.fn(),
 }));
 
 const mockedGetAccount = vi.mocked(getAccount);
 const mockedGetAccounts = vi.mocked(getAccounts);
+const mockedGetAccountTransfers = vi.mocked(getAccountTransfers);
 const mockedCreateTransfer = vi.mocked(createTransfer);
 
 const alice = { id: '1', name: 'Alice', balance_cents: 100000, created_at: '2026-01-01T00:00:00Z' };
@@ -18,6 +20,7 @@ const bob = { id: '2', name: 'Bob', balance_cents: 100000, created_at: '2026-01-
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockedGetAccountTransfers.mockResolvedValue([]);
 });
 
 describe('AccountDetail', () => {
@@ -112,5 +115,47 @@ describe('AccountDetail', () => {
     await waitFor(() => expect(screen.getByRole('option', { name: 'Bob' })).toBeInTheDocument());
 
     expect(screen.queryByRole('option', { name: 'Alice' })).not.toBeInTheDocument();
+  });
+
+  it('renders the transfer log with sent and received rows', async () => {
+    mockedGetAccount.mockResolvedValue(alice);
+    mockedGetAccounts.mockResolvedValue([alice, bob]);
+    mockedGetAccountTransfers.mockResolvedValue([
+      {
+        id: 't1',
+        from_account_id: alice.id,
+        to_account_id: bob.id,
+        amount_cents: 10000,
+        idempotency_key: 'k1',
+        created_at: '2026-01-02T00:00:00Z',
+      },
+      {
+        id: 't2',
+        from_account_id: bob.id,
+        to_account_id: alice.id,
+        amount_cents: 5000,
+        idempotency_key: 'k2',
+        created_at: '2026-01-01T00:00:00Z',
+      },
+    ]);
+
+    render(<AccountDetail accountId="1" />);
+
+    expect(await screen.findByText('Sent')).toBeInTheDocument();
+    expect(screen.getByText('Received')).toBeInTheDocument();
+    expect(screen.getByText('-$100.00')).toBeInTheDocument();
+    expect(screen.getByText('+$50.00')).toBeInTheDocument();
+    // Bob is the counterparty in both log rows, plus the destination dropdown option.
+    expect(screen.getAllByText('Bob')).toHaveLength(3);
+  });
+
+  it('shows an empty state when the account has no transfers', async () => {
+    mockedGetAccount.mockResolvedValue(alice);
+    mockedGetAccounts.mockResolvedValue([alice, bob]);
+    mockedGetAccountTransfers.mockResolvedValue([]);
+
+    render(<AccountDetail accountId="1" />);
+
+    expect(await screen.findByText('No transfers yet')).toBeInTheDocument();
   });
 });

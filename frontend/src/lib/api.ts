@@ -38,6 +38,20 @@ export interface Transfer {
   created_at: string;
 }
 
+export async function getAccountTransfers(
+  accountId: string,
+  signal?: AbortSignal,
+): Promise<Transfer[]> {
+  const response = await fetch(`${API_URL}/accounts/${accountId}/transfers`, {
+    signal,
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(`Could not load transfer log (HTTP ${response.status}).`);
+  }
+  return (await response.json()) as Transfer[];
+}
+
 export interface CreateTransferInput {
   fromAccountId: string;
   toAccountId: string;

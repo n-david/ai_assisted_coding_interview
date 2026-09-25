@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { createTransfer, getAccount, getAccounts, type Account } from '~/lib/api';
+import {
+  createTransfer,
+  getAccount,
+  getAccounts,
+  getAccountTransfers,
+  type Account,
+  type Transfer,
+} from '~/lib/api';
 import { dollarsToCents, formatCents } from '~/lib/money';
 
 export default function AccountDetail({ accountId }: { accountId: string }) {
@@ -17,6 +24,30 @@ export default function AccountDetail({ accountId }: { accountId: string }) {
   const [transferMessage, setTransferMessage] = useState<
     { type: 'success' | 'error'; text: string } | null
   >(null);
+
+  const [transfers, setTransfers] = useState<Transfer[]>([]);
+  const [transfersLoading, setTransfersLoading] = useState(true);
+  const [transfersError, setTransfersError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadTransfers() {
+      try {
+        const data = await getAccountTransfers(accountId, controller.signal);
+        if (!controller.signal.aborted) setTransfers(data);
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          setTransfersError(err instanceof Error ? err.message : 'Failed to load transfer log');
+        }
+      } finally {
+        if (!controller.signal.aborted) setTransfersLoading(false);
+      }
+    }
+
+    void loadTransfers();
+    return () => controller.abort();
+  }, [accountId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -86,8 +117,12 @@ export default function AccountDetail({ accountId }: { accountId: string }) {
         amountCents,
         idempotencyKey: crypto.randomUUID(),
       });
-      const refreshed = await getAccount(accountId);
-      setAccount(refreshed);
+      const [refreshedAccount, refreshedTransfers] = await Promise.all([
+        getAccount(accountId),
+        getAccountTransfers(accountId),
+      ]);
+      setAccount(refreshedAccount);
+      setTransfers(refreshedTransfers);
       setAmountDollars('');
       setTransferMessage({ type: 'success', text: 'Transfer complete.' });
     } catch (err) {
@@ -187,6 +222,58 @@ export default function AccountDetail({ accountId }: { accountId: string }) {
               >
                 {transferMessage.text}
               </div>
+            )}
+          </div>
+        )}
+
+        {account && (
+          <div className="bg-white rounded-lg shadow-lg p-6 mt-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Transfer log</h2>
+
+            {transfersError && (
+              <div className="p-4 rounded-md bg-red-100 border border-red-400 text-red-700">
+                {transfersError}
+              </div>
+            )}
+
+            {!transfersError && transfersLoading && <p className="text-gray-500">Loading...</p>}
+
+            {!transfersError && !transfersLoading && !transfers.length && (
+              <p className="text-gray-500 text-center py-8">No transfers yet</p>
+            )}
+
+            {!transfersError && !transfersLoading && transfers.length > 0 && (
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-sm text-gray-500 border-b border-gray-200">
+                    <th className="py-2 font-medium">Direction</th>
+                    <th className="py-2 font-medium">Account</th>
+                    <th className="py-2 font-medium">Amount</th>
+                    <th className="py-2 font-medium">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transfers.map((transfer) => {
+                    const sent = transfer.from_account_id === accountId;
+                    const counterpartyId = sent ? transfer.to_account_id : transfer.from_account_id;
+                    const counterpartyName =
+                      otherAccounts.find((a) => a.id === counterpartyId)?.name ?? counterpartyId;
+                    return (
+                      <tr key={transfer.id} className="border-b border-gray-100">
+                        <td className="py-2">{sent ? 'Sent' : 'Received'}</td>
+                        <td className="py-2">{counterpartyName}</td>
+                        <td className={`py-2 ${sent ? 'text-red-700' : 'text-green-700'}`}>
+                          {sent ? '-' : '+'}
+                          {formatCents(transfer.amount_cents)}
+                        </td>
+                        <td className="py-2 text-gray-500">
+                          {new Date(transfer.created_at).toLocaleString()}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             )}
           </div>
         )}

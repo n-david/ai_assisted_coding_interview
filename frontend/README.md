@@ -14,7 +14,7 @@ See the [root setup instructions](../README.md#setup) to install dependencies an
 | `src/lib/api.ts` | TypeScript response types and REST requests |
 | `src/lib/money.ts` | Cents ↔ dollars formatting/parsing helpers |
 | `src/components/AccountsDashboard.tsx` | Lists all accounts with their balance, links to detail pages |
-| `src/components/AccountDetail.tsx` | Shows one account's balance and a transfer-money form (transfer log lands in a later checkpoint) |
+| `src/components/AccountDetail.tsx` | Shows one account's balance, a transfer-money form, and its transfer log |
 
 This is a peer-to-peer transfer demo; see [docs/features/001-p2p-transfer-service.md](../docs/features/001-p2p-transfer-service.md) for the full design.
 
@@ -29,6 +29,7 @@ Request functions live in `src/lib/api.ts`, whose `API_URL` points to `http://lo
 
 - `GET /api/accounts/` to list all accounts (used by `AccountsDashboard`, and by `AccountDetail` to populate the transfer form's destination dropdown, excluding the current account).
 - `GET /api/accounts/{id}` to load a single account (used by `AccountDetail`; also called again after a successful transfer to refresh the displayed balance).
+- `GET /api/accounts/{id}/transfers` via `getAccountTransfers` to load the transfer log (used by `AccountDetail`; also refreshed after a successful transfer). Each row's direction (Sent/Received) and counterparty name are derived client-side by comparing `from_account_id`/`to_account_id` against the current account and the accounts list.
 - `POST /api/transfers/` via `createTransfer` (used by `AccountDetail`'s transfer form). Sends a fresh `crypto.randomUUID()` as the `Idempotency-Key` header on every submit.
 
 REST responses use `balance_cents`/`amount_cents` (formatted via `formatCents` in `lib/money.ts`; the form parses dollar input back to cents via `dollarsToCents`) and `created_at`. Request failures — including backend validation errors like insufficient funds or a self-transfer — surface their `detail` message inline on the page.

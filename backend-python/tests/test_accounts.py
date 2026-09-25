@@ -63,3 +63,45 @@ def test_account_with_no_ledger_entries_has_zero_balance(client: TestClient):
 
     assert response.status_code == 200
     assert response.json()["balance_cents"] == 0
+
+
+def _transfer(client: TestClient, from_id: str, to_id: str, amount_cents: int):
+    return client.post(
+        "/api/transfers/",
+        json={"from_account_id": from_id, "to_account_id": to_id, "amount_cents": amount_cents},
+        headers={"Idempotency-Key": str(uuid.uuid4())},
+    )
+
+
+def test_account_transfer_log_lists_sent_and_received_newest_first(seeded_client: TestClient):
+    accounts = {a["name"]: a for a in seeded_client.get("/api/accounts/").json()}
+    alice, bob, carol = accounts["Alice"], accounts["Bob"], accounts["Carol"]
+
+    sent = _transfer(seeded_client, alice["id"], bob["id"], 10_000).json()
+    received = _transfer(seeded_client, carol["id"], alice["id"], 5_000).json()
+
+    response = seeded_client.get(f"/api/accounts/{alice['id']}/transfers")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [t["id"] for t in body] == [received["id"], sent["id"]]
+    assert body[1]["from_account_id"] == alice["id"]
+    assert body[1]["to_account_id"] == bob["id"]
+    assert body[0]["from_account_id"] == carol["id"]
+    assert body[0]["to_account_id"] == alice["id"]
+
+
+def test_account_transfer_log_empty_for_account_with_no_transfers(seeded_client: TestClient):
+    accounts = {a["name"]: a for a in seeded_client.get("/api/accounts/").json()}
+    dave = accounts["Dave"]
+
+    response = seeded_client.get(f"/api/accounts/{dave['id']}/transfers")
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_account_transfer_log_404_for_unknown_account(seeded_client: TestClient):
+    response = seeded_client.get(f"/api/accounts/{uuid.uuid4()}/transfers")
+
+    assert response.status_code == 404

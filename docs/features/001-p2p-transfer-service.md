@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementing (Checkpoint 1 in progress).
+Implementing (Checkpoints 1–2 complete, Checkpoint 3 next).
 
 ## Goal and scope
 
@@ -53,7 +53,7 @@ None outstanding. Two rounds of clarification were resolved before implementatio
 
 ### Concurrency
 
-`database/session.py`: disable pysqlite's implicit transaction handling on `connect`, issue `BEGIN IMMEDIATE` on `begin` instead of the default `BEGIN`, and set a busy `timeout` in `connect_args`. Applies to every session/transaction; no per-endpoint special-casing.
+`database/session.py`: disable pysqlite's implicit transaction handling on `connect`, issue `BEGIN IMMEDIATE` on `begin` instead of the default `BEGIN`, and set a busy `timeout` in `connect_args`. Applies to every session/transaction; no per-endpoint special-casing. This is factored into a reusable `configure_sqlite_immediate_transactions(engine)` function rather than inlined against the module-level `engine`, because `tests/conftest.py` creates its **own** SQLite engine per test — the first version of this code attached the listeners only to the app's engine, so the concurrency test below initially ran against a completely unprotected test database and (correctly) caught the gap: all 10 concurrent requests succeeded and overdrew the account. `conftest.py` now calls the same `configure_sqlite_immediate_transactions` on its test engines, so tests exercise the real locking behavior.
 
 ### Idempotency + ledger-write flow (`POST /api/transfers/`)
 
@@ -99,13 +99,15 @@ None outstanding. Two rounds of clarification were resolved before implementatio
 
 ### Checkpoint 2 — Transfer money (feature 1)
 
-- [ ] `Transfer` model.
-- [ ] `session.py`: `BEGIN IMMEDIATE` concurrency recipe.
-- [ ] `api/transfers.py`: idempotent, atomic, ledger-writing `POST /api/transfers/`.
-- [ ] `tests/test_transfers.py`: happy path, validation errors, insufficient funds, missing account, idempotent replay, idempotency conflict, concurrency/double-spend test.
-- [ ] Frontend: transfer form on `AccountDetail`, same-account/amount validation.
-- [ ] Frontend tests: submit success/error paths, form validation.
-- [ ] Run tests/static checks; manual smoke test; update READMEs.
+- [x] `Transfer` model (already added in Checkpoint 1 for the `LedgerEntry` FK).
+- [x] `session.py`: `BEGIN IMMEDIATE` concurrency recipe, factored into `configure_sqlite_immediate_transactions()` so both the app and tests use it.
+- [x] `schemas/transfer.py`: `TransferCreate` (`amount_cents` validated `> 0`), `Transfer` response.
+- [x] `api/transfers.py`: idempotent, atomic, ledger-writing `POST /api/transfers/`; registered in `main.py`.
+- [x] `tests/conftest.py`: test engines now also get `configure_sqlite_immediate_transactions()`.
+- [x] `tests/test_transfers.py`: happy path, amount validation, self-transfer, insufficient funds, missing account, idempotent replay, idempotency conflict, concurrency/double-spend test.
+- [x] Frontend: transfer form on `AccountDetail` (destination dropdown excludes the current account, dollar amount input, inline success/error), `createTransfer` in `lib/api.ts`.
+- [x] Frontend tests: submit success (balance refresh), submit error (insufficient funds), non-positive amount blocked client-side, destination dropdown excludes self.
+- [x] Run tests/static checks; manual smoke test; update READMEs.
 
 ### Checkpoint 3 — Transfer log (feature 3)
 
@@ -123,23 +125,23 @@ None outstanding. Two rounds of clarification were resolved before implementatio
 | --- | --- | --- |
 | Checkpoint 1 backend unit/integration | `poetry run pytest` (from `backend-python`) | Pass — 5/5 (list w/ balances, get by id, 404, empty-db list, zero-ledger-entry balance) |
 | Checkpoint 1 frontend unit | `npm test` (from `frontend`) | Pass — 4/4 (`AccountsDashboard` list/error, `AccountDetail` load/error) |
-| Checkpoint 2 backend: happy/validation/idempotency/concurrency | `poetry run pytest` | Not run |
-| Checkpoint 2 frontend | `npm test` | Not run |
+| Checkpoint 2 backend: happy/validation/idempotency/concurrency | `poetry run pytest` | Pass — 13/13 total (8 new: happy path, amount ≤ 0, self-transfer, insufficient funds, missing account ×2, idempotent replay, idempotency conflict, concurrency/double-spend). Concurrency test re-run 5× standalone with no flakes. |
+| Checkpoint 2 frontend | `npm test` | Pass — 8/8 total (4 new: submit success + balance refresh, submit error inline message, non-positive amount blocked client-side, self excluded from destination dropdown) |
 | Checkpoint 3 backend: log ordering/empty/404 | `poetry run pytest` | Not run |
 | Checkpoint 3 frontend | `npm test` | Not run |
-| Static checks (Checkpoint 1 files) | `poetry run black`/`isort` (new files only, pre-existing `session.py`/`models/base.py` already fail `black` unrelated to this change); `poetry run mypy src`; `npm run typecheck`; `npm run lint` | Pass |
+| Static checks (Checkpoints 1–2 files) | `poetry run black`/`isort` (new/modified files only, pre-existing `models/base.py` already fails `black` unrelated to this change); `poetry run mypy src`; `npm run typecheck`; `npm run lint` | Pass |
 
 ### Manual smoke test
 
 | Steps | Expected result | Observed result |
 | --- | --- | --- |
 | Checkpoint 1: dashboard + balance | 4 seeded accounts @ $1000, detail page shows balance | **Pass.** Backend: `curl /api/accounts/` → 4 accounts (Alice/Bob/Carol/Dave) @ 100000 cents each; `GET /api/accounts/{id}` → 200; unknown id → 404. Frontend (localhost:3000, Chrome via claude-in-chrome): dashboard lists all 4 with `$1,000.00`; clicking "Alice" navigates to `/accounts/{id}` showing name + `$1,000.00` balance. Both dev servers were already running; backend `--reload` picked up the changes automatically. Run 2026-09-25. |
-| Checkpoint 2: transfer + retry + over-limit | Balances update once; retry no-ops; over-limit rejected | Not run |
+| Checkpoint 2: transfer + retry + over-limit | Balances update once; retry no-ops; over-limit rejected | **Pass.** `curl`: Alice→Bob $250 → `201`; identical retry (same `Idempotency-Key`) → `200`, same transfer id, balances unchanged by the retry (Alice $750.00, Bob $1,250.00); over-limit transfer → `400 Insufficient funds`; self-transfer → `400`. Browser (Chrome via claude-in-chrome): on Carol's detail page, selected "Dave", entered $100, submitted — "Transfer complete.", Carol's balance updated to $900.00 in place; dashboard then showed Carol $900.00 / Dave $1,100.00, consistent with the API. Run 2026-09-25. |
 | Checkpoint 3: transfer log | Both sender and receiver see the transfer in their log | Not run |
 
 ## Progress and handoff
 
-- Completed work: plan approved; feature doc created; **Checkpoint 1 implemented and verified** (accounts + double-entry ledger seed data, `GET /api/accounts/` and `GET /api/accounts/{id}` with computed balances, dashboard + detail UI, backend/frontend tests, static checks, manual smoke test, README updates). Hello World feature fully removed.
-- Remaining work and blockers: Checkpoints 2 (transfer money) and 3 (transfer log) not started. Paused here for user review before starting Checkpoint 2, per staged-implementation agreement.
-- Next concrete step: implement Checkpoint 2 — `POST /api/transfers/` with idempotency, `BEGIN IMMEDIATE` concurrency control, and double-entry ledger writes; transfer form on `AccountDetail`.
-- Known limitations or follow-up work: single-process demo (the `BEGIN IMMEDIATE` concurrency approach doesn't extend to multiple SQLite writer processes); no reconciliation job (not needed since balance is always computed live from the ledger, not cached).
+- Completed work: plan approved; feature doc created; **Checkpoint 1** (accounts + double-entry ledger seed data, balance-viewing endpoints/UI) and **Checkpoint 2** (`POST /api/transfers/` — idempotent, atomic, `BEGIN IMMEDIATE`-serialized ledger writes; transfer form UI) implemented and verified. Hello World feature fully removed. Both checkpoints committed.
+- Remaining work and blockers: Checkpoint 3 (transfer log) not started.
+- Next concrete step: implement Checkpoint 3 — `GET /api/accounts/{id}/transfers` and the transfer log table on `AccountDetail`.
+- Known limitations or follow-up work: single-process demo (the `BEGIN IMMEDIATE` concurrency approach doesn't extend to multiple SQLite writer processes); no reconciliation job (not needed since balance is always computed live from the ledger, not cached); the concurrency regression test (`test_concurrent_transfers_cannot_overdraw_account`) is a real-thread test and, while verified stable across repeated runs and deterministic by construction (equal transfer amounts fix the affordable count regardless of interleaving), real-concurrency tests are inherently less airtight than a fully deterministic unit test.

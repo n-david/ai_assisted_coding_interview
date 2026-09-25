@@ -12,6 +12,7 @@ Open http://localhost:8080/docs to explore and try the endpoints.
 | --- | --- | --- |
 | GET | `/api/accounts/` | List all accounts with their current computed balance |
 | GET | `/api/accounts/{account_id}` | Get a single account by UUID; 404 if unknown |
+| POST | `/api/transfers/` | Transfer money between two accounts; see below |
 
 Account responses contain `id`, `name`, `balance_cents`, and `created_at`. `balance_cents` is always computed as the sum of the account's ledger entries (see [Data model](#data-model)) — there is no stored balance column.
 
@@ -19,7 +20,23 @@ Account responses contain `id`, `name`, `balance_cents`, and `created_at`. `bala
 curl 'http://localhost:8080/api/accounts/'
 ```
 
-This is a peer-to-peer transfer demo; see [docs/features/001-p2p-transfer-service.md](../docs/features/001-p2p-transfer-service.md) for the full design and the transfer/transfer-log endpoints landing in later checkpoints.
+This is a peer-to-peer transfer demo; see [docs/features/001-p2p-transfer-service.md](../docs/features/001-p2p-transfer-service.md) for the full design, including the transfer-log endpoint landing in a later checkpoint.
+
+### Transfers
+
+`POST /api/transfers/` requires a JSON body and a required `Idempotency-Key` header:
+
+```sh
+curl -X POST 'http://localhost:8080/api/transfers/' \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: <any unique string, e.g. a UUID>' \
+  -d '{"from_account_id":"<uuid>","to_account_id":"<uuid>","amount_cents":2500}'
+```
+
+- Returns `201` on first execution, `200` if the same `Idempotency-Key` + payload is replayed (no re-execution).
+- `409` if the same `Idempotency-Key` is reused with a different payload.
+- `400` for a self-transfer or insufficient funds; `404` for an unknown account; `422` for a non-positive `amount_cents`.
+- The debit, credit, and transfer record are written atomically; concurrent transfers against the same account are serialized via SQLite `BEGIN IMMEDIATE` (see `database/session.py`) so they can't race past a stale balance check.
 
 ## Data model
 
@@ -29,10 +46,11 @@ This is a peer-to-peer transfer demo; see [docs/features/001-p2p-transfer-servic
 
 ## Where to work
 
-- `src/app/api/accounts.py`: route handlers and balance computation.
-- `src/app/schemas/account.py`: Pydantic request/response models.
+- `src/app/api/accounts.py`: account route handlers and balance computation.
+- `src/app/api/transfers.py`: transfer route handler — idempotency, validation, and the atomic ledger write.
+- `src/app/schemas/account.py`, `schemas/transfer.py`: Pydantic request/response models.
 - `src/app/models/account.py`, `models/transfer.py`, `models/ledger_entry.py`: SQLAlchemy table definitions.
-- `src/app/database/session.py`: SQLite connection and request sessions.
+- `src/app/database/session.py`: SQLite connection/session setup, including the `BEGIN IMMEDIATE` concurrency configuration shared by the app and the test fixtures.
 - `src/app/database/seed.py`: seeds 4 demo accounts, each with a $1000 starting ledger entry.
 - `src/app/main.py`: app setup, CORS, and router registration.
 

@@ -15,15 +15,19 @@ _startup_db_dir = TemporaryDirectory(prefix="brex-pytest-")
 os.environ["DATABASE_URL"] = f"sqlite:///{Path(_startup_db_dir.name) / 'startup.db'}"
 
 from src.app.database.seed import seed_database  # noqa: E402
-from src.app.database.session import get_db  # noqa: E402
+from src.app.database.session import configure_sqlite_immediate_transactions, get_db  # noqa: E402
 from src.app.main import app  # noqa: E402
 from src.app.models.base import Base  # noqa: E402
 
 
 def _make_test_engine(tmp_path: Path) -> Engine:
     engine = create_engine(
-        f"sqlite:///{tmp_path / 'test.db'}", connect_args={"check_same_thread": False}
+        f"sqlite:///{tmp_path / 'test.db'}",
+        connect_args={"check_same_thread": False, "timeout": 30},
     )
+    # Tests must run against the same BEGIN IMMEDIATE locking as production,
+    # otherwise concurrency tests would validate an engine that was never at risk.
+    configure_sqlite_immediate_transactions(engine)
     Base.metadata.create_all(bind=engine)
     return engine
 

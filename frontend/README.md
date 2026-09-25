@@ -9,26 +9,28 @@ See the [root setup instructions](../README.md#setup) to install dependencies an
 | File | Purpose |
 | --- | --- |
 | `src/app/layout.tsx` | Shared HTML wrapper, global styles, and page metadata |
-| `src/app/page.tsx` | Home page entry point; renders the dashboard |
+| `src/app/page.tsx` | Home page entry point; renders the accounts dashboard |
+| `src/app/accounts/[accountId]/page.tsx` | Account detail route |
 | `src/lib/api.ts` | TypeScript response types and REST requests |
-| `src/components/HelloWorldDashboard.tsx` | Page behavior and rendering |
+| `src/lib/money.ts` | Cents ↔ dollars formatting/parsing helpers |
+| `src/components/AccountsDashboard.tsx` | Lists all accounts with their balance, links to detail pages |
+| `src/components/AccountDetail.tsx` | Shows one account's balance (transfer form and transfer log land in later checkpoints) |
+
+This is a peer-to-peer transfer demo; see [docs/features/001-p2p-transfer-service.md](../docs/features/001-p2p-transfer-service.md) for the full design.
 
 ## State and request flow
 
-The dashboard is a client component. It uses React state to track the message list, initial loading, message creation, and success/error notifications.
+Both dashboard and detail components are client components using React state for loading/error/data, following the same pattern:
 
-1. On mount, an effect calls `getLatestMessages()` and stores the result in state. Its cleanup aborts the request if the component is removed.
-2. Clicking the create button calls `createMessage("Hello World")`, then fetches the updated list.
-3. State updates render the new list and notification. The button is disabled while creation is in progress.
+1. On mount, an effect calls the relevant `lib/api.ts` function and stores the result in state. Its cleanup aborts the request if the component is removed.
+2. Loading, error, and loaded states render accordingly.
 
-Both request functions live in `src/lib/api.ts`, whose `API_URL` points to `http://localhost:8080/api`.
+Request functions live in `src/lib/api.ts`, whose `API_URL` points to `http://localhost:8080/api`:
 
-The dashboard currently uses:
+- `GET /api/accounts/` to list all accounts (used by `AccountsDashboard`).
+- `GET /api/accounts/{id}` to load a single account (used by `AccountDetail`).
 
-- `GET /api/messages/latest/?limit=10` to load recent messages.
-- `POST /api/messages/` with JSON `{"content":"Hello World"}` to create a message, followed by a refresh of the list.
-
-REST responses use `created_at` for the timestamp. Request failures appear on the dashboard.
+REST responses use `balance_cents` (formatted via `formatCents` in `lib/money.ts`) and `created_at`. Request failures appear inline on the page.
 
 ## Adding a UI feature
 

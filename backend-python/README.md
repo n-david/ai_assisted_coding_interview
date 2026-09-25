@@ -10,27 +10,30 @@ Open http://localhost:8080/docs to explore and try the endpoints.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/api/messages/` | List messages; accepts `skip` and `limit` |
-| GET | `/api/messages/latest/` | List newest messages first; accepts `limit` |
-| GET | `/api/messages/{message_id}` | Get a message by UUID |
-| POST | `/api/messages/` | Create a message from JSON `{"content":"Hello World"}` |
+| GET | `/api/accounts/` | List all accounts with their current computed balance |
+| GET | `/api/accounts/{account_id}` | Get a single account by UUID; 404 if unknown |
 
-Message responses contain `id`, `content`, and `created_at`.
+Account responses contain `id`, `name`, `balance_cents`, and `created_at`. `balance_cents` is always computed as the sum of the account's ledger entries (see [Data model](#data-model)) — there is no stored balance column.
 
 ```sh
-curl 'http://localhost:8080/api/messages/latest/?limit=10'
-curl -X POST 'http://localhost:8080/api/messages/' \
-  -H 'Content-Type: application/json' \
-  -d '{"content":"My first REST message"}'
+curl 'http://localhost:8080/api/accounts/'
 ```
+
+This is a peer-to-peer transfer demo; see [docs/features/001-p2p-transfer-service.md](../docs/features/001-p2p-transfer-service.md) for the full design and the transfer/transfer-log endpoints landing in later checkpoints.
+
+## Data model
+
+- **`Account`**: `id`, `name`, timestamps. No balance column.
+- **`Transfer`**: one row per peer-to-peer transfer (`from_account_id`, `to_account_id`, `amount_cents`, `idempotency_key`). Insert-only.
+- **`LedgerEntry`**: the source of truth for balances. Two signed rows per transfer (a debit and a credit), plus one unlinked seed-funding entry per account. Insert-only. An account's balance is `SUM(ledger_entries.amount_cents)` for that account.
 
 ## Where to work
 
-- `src/app/api/messages.py`: route handlers and database operations.
-- `src/app/schemas/message.py`: Pydantic request/response models.
-- `src/app/models/message.py`: SQLAlchemy table definition.
+- `src/app/api/accounts.py`: route handlers and balance computation.
+- `src/app/schemas/account.py`: Pydantic request/response models.
+- `src/app/models/account.py`, `models/transfer.py`, `models/ledger_entry.py`: SQLAlchemy table definitions.
 - `src/app/database/session.py`: SQLite connection and request sessions.
-- `src/app/database/seed.py`: initial sample data.
+- `src/app/database/seed.py`: seeds 4 demo accounts, each with a $1000 starting ledger entry.
 - `src/app/main.py`: app setup, CORS, and router registration.
 
 Register new routers in `main.py` with `app.include_router(...)`.
@@ -43,7 +46,7 @@ The CORS configuration in `main.py` allows browser requests from `http://localho
 
 The URL `sqlite:///./dummy.db` resolves relative to the server's working directory. Run from `backend-python` to use its `dummy.db` file.
 
-The starter drops and recreates its tables, then seeds one Hello World message on every start. Automatic reloads also reset the data.
+The starter drops and recreates its tables, then seeds 4 demo accounts (Alice, Bob, Carol, Dave) with a $1000 starting balance each on every start. Automatic reloads also reset the data.
 
 Set `DATABASE_URL` to a different SQLite URL when you need an isolated database. For example, `DATABASE_URL=sqlite:////tmp/brex-interview.db poetry run uvicorn src.app.main:app --reload --port 8080` keeps the tracked `dummy.db` untouched.
 

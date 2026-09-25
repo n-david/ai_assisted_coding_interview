@@ -1,14 +1,20 @@
 from sqlalchemy.orm import Session
 
-from ..models.message import Message
+from ..models.account import Account
+from ..models.ledger_entry import LedgerEntry
+
+STARTING_BALANCE_CENTS = 100_000
+SEED_ACCOUNT_NAMES = ["Alice", "Bob", "Carol", "Dave"]
 
 
 def seed_database(db: Session):
-    # Create messages
-    messages = [
-        Message(content="Hello World"),
-    ]
+    accounts = [Account(name=name) for name in SEED_ACCOUNT_NAMES]
+    db.add_all(accounts)
+    db.flush()  # assign account IDs before creating ledger entries
 
-    # Add messages to session
-    db.add_all(messages)
-    db.commit()  # This will assign IDs to the messages
+    seed_entries = [
+        LedgerEntry(account_id=account.id, transfer_id=None, amount_cents=STARTING_BALANCE_CENTS)
+        for account in accounts
+    ]
+    db.add_all(seed_entries)
+    db.commit()
